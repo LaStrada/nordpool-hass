@@ -1,3 +1,5 @@
+const PowerVars = require('./PowerVars.js');
+const Tresholds = require('./Tresholds.js');
 const schedule = require('node-schedule');
 const nordpool = require('nordpool');
 const moment = require('moment-timezone');
@@ -6,11 +8,11 @@ const config = require('./config');
 const findStreak = require('findstreak');
 const request = require('request');
 
-const lowEvent = 'nordpool-price-low';
-const normEvent = 'nordpool-price-normal';
-const highEvent = 'nordpool-price-high';
-
-const iftttUrl = 'https://maker.ifttt.com/trigger/';
+const veryLowEvent = 1.5;
+const lowEvent = 0.5;
+const normEvent = 0;
+const highEvent = -0.5;
+const veryHighEvent = -1.5;
 
 let myTZ = moment.tz.guess();
 let jobs = [];
@@ -21,7 +23,7 @@ getPrices();
 // Prices for tomorrow are published today at 12:42 CET or later
 // (http://www.nordpoolspot.com/How-does-it-work/Day-ahead-market-Elspot-/)
 // update prices at 13:00 UTC
-let cronPattern = moment.tz('13:00Z', 'HH:mm:Z', myTZ).format('m H * * *');
+let cronPattern = moment.tz('18:00Z', 'HH:mm:Z', myTZ).format('m H * * *');
 // cronPattern = '* */12 * * *';
 // console.log(cronPattern);
 let getPricesJob = schedule.scheduleJob(cronPattern, getPrices);
@@ -32,6 +34,12 @@ function getPrices() {
       console.error(error);
       return;
     }
+    let powerVars = getPowerVars(results);
+    if (powerVars === null) {
+      return;
+    }
+    let tresholds = getTresholds(powerVars);
+
     let events = [];
     let tmpHours = [];
     let previousEvent = normEvent;
@@ -40,10 +48,16 @@ function getPrices() {
       if (config.vatPercent) {
         item.value = Math.round(item.value * (100 + config.vatPercent))/100;
       }
-      if (item.value > config.highTreshold) {
+      if (item.value > tresholds.veryHighTreshold) {
+        item.event = veryHighEvent;
+      }
+      else if (item.value > tresholds.highTreshold) {
         item.event = highEvent;
       }
-      else if (item.value < config.lowTreshold) {
+      else if (item.value < tresholds.veryLowTreshold) {
+        item.event = veryLowEvent;
+      }
+      else if (item.value < tresholds.lowTreshold) {
         item.event = lowEvent;
       }
       else {
@@ -53,10 +67,10 @@ function getPrices() {
       if (item.event != previousEvent) {
         var max = 24;
         var lo = false;
-        if (previousEvent == highEvent) {
+        if (previousEvent == highEvent || previousEvent == veryHighEvent) {
           max = config.maxHighHours;
         }
-        else if (previousEvent == lowEvent) {
+        else if (previousEvent == lowEvent || previousEvent == veryLowEvent) {
           max = config.maxLowHours;
           var lo = true;
         }
@@ -98,31 +112,99 @@ function getPrices() {
       // store all items in the current treshold interval
       tmpHours.push(item);
     });
-    // console.log(events);
     events.forEach(item => {
       jobs.push(schedule.scheduleJob(item.date.toDate(), trigger.bind(null, item)));
-      console.log(item.date.format('D.M. H:mm'), item.value, item.event)
+      console.log(item.date.format('HH:mm:ss DD-MM-YYYY'), item.value, item.event)
     });
   });
 }
 
+function getTresholds(powerVars) {
+  if (powerVars instanceof PowerVars === false) {
+    console.error('Wrong type!');
+    return null;
+  }
+
+  let veryHighTreshold = Math.round(powerVars.average * 2);
+  let highTreshold = Math.round(powerVars.average + ((powerVars.max - powerVars.average) / 2));
+  if (highTreshold > veryHighTreshold) {
+    let temp = veryHighTreshold;
+    highTreshold = veryHighTreshold;
+    veryHighTreshold = temp;
+  }
+
+  let veryLowTreshold = Math.round(powerVars.average / 2);
+  let lowTreshold = Math.round(powerVars.average - ((powerVars.average - powerVars.min) / 2));
+  if (lowTreshold < veryLowTreshold) {
+    let temp = veryLowTreshold;
+    lowTreshold = veryLowTreshold;
+    veryLowTreshold = temp;
+  }
+  let treshold = new Tresholds(veryLowTreshold, lowTreshold, highTreshold, veryHighTreshold);
+  return treshold;
+}
+
+function getPowerVars(results) {
+  if (results === null) {
+    console.error('Results is none!');
+    return null
+  }
+  let counter = 0;
+  let value = 0;
+
+  let average = null;
+  let min = null;
+  let max = null;
+
+  results.forEach((item, index) => {
+    counter++;
+    value += item.value;
+
+    if (min === null || item.value < min) {
+      min = item.value
+    }
+    if (max === null || item.value > max) {
+      max = item.value
+    }
+  });
+
+  average = Math.round(value / counter);
+
+  if (average === null) {
+    console.error('Average is null...');
+    return null;
+  }
+  return new PowerVars(average, min, max);;
+}
+
 function trigger(item) {
+  dateStr = item.date.format('HH:mm:ss DD-MM-YYYY')
   let values = {
-    value1: item.value,
-    value2: config.currency + '/MWh',
-    value3: item.date.format('H:mm')
+    state: item.value,
+    attributes: {
+      'friendly_name': 'Temperature offset',
+      'power_offset': item.event
+    },
+    last_changed: dateStr,
+    last_updated: dateStr,
+    unit_of_measurement: config.currency + '/MWh',
+    from_date: item.date.format('HH:mm')
   };
+
   var opts = {
-    url: iftttUrl + item.event + '/with/key/' + config.iftttKey,
+    url: config.hassUrl + 'api/states/' + config.hassSensorName,
     json: true,
-    body: values
+    body: values,
+    headers: {
+      'x-ha-access': config.hassPassword,
+      'Content-Type': 'application/json',
+    }
   };
-  console.log('POSTing ' + item.event + ' event: ' + values.value1 + ' ' + values.value2 + ' at ' + values.value3);
   request.post(opts, function(err, res) {
     if (err) {
       console.error(err);
       return;
     }
-    console.log('Success: ' + res.body)
+    console.log('Success! New value: ' + item.value + ', ' + res.body)
   })
 }

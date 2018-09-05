@@ -1,7 +1,7 @@
 {
-  "name": "nordpool-ifttt",
-  "version": "0.2.0",
-  "description": "Check Nordpool energy prices and set IFTTT triggers based on your limits",
+  "name": "nordpool-hass",
+  "version": "0.1.0",
+  "description": "Check Nordpool energy prices and send thermostat tresholds to Home Assistant",
   "main": "index.js",
   "scripts": {
     "start": "pm2 startOrRestart pm2.json",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/samuelmr/nordpool-ifttt.git"
+    "url": "https://github.com/LaStrada/nordpool-hass.git"
   },
   "keywords": [
     "Nordpool",
@@ -21,14 +21,14 @@
   "author": "Samuel Rinnetmaki",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/samuelmr/nordpool-ifttt/issues"
+    "url": "https://github.com/LaStrada/nordpool-hass/issues"
   },
-  "homepage": "https://github.com/samuelmr/nordpool-ifttt#readme",
+  "homepage": "https://github.com/LaStrada/nordpool-hass#readme",
   "dependencies": {
     "findstreak": "^1.1.1",
     "moment-timezone": "^0.5.13",
     "node-schedule": "^1.2.3",
-    "nordpool": "^2.0.0",
+    "nordpool": "LaStrada/nordpool-node#LaStrada-regex-fix",
     "pm2": "latest",
     "request": "^2.81.0"
   }
