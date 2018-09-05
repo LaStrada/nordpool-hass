@@ -1,6 +1,5 @@
 
-# Fetch Nordpool/Elspot and send thermostat tresholds to Home Assistant
-Check Nordpool energy prices and send thermostat tresholds to Home Assistant
+# Check Nordpool energy prices and send thermostat tresholds to Home Assistant
 Gets day-ahead prices from [Nordpool](http://www.nordpoolspot.com/Market-data1/Elspot/)
 
 ## Installation
@@ -39,5 +38,7 @@ Configuration parameters:
 Start script will run [PM2](http://pm2.keymetrics.io/) to keep the script running.
 
     npm start
+
+Will create a sensor on Home Assistant server with the name from `hassSensorName`, e.g. `sensor.thermostat_treshold`.
 
 Enjoy!
