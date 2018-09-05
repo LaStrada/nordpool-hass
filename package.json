@@ -1,6 +1,6 @@
 {
   "name": "nordpool-hass",
-  "version": "0.1.0",
+  "version": "0.3.2",
   "description": "Check Nordpool energy prices and send thermostat tresholds to Home Assistant",
   "main": "index.js",
   "scripts": {
@@ -15,7 +15,8 @@
     "Nordpool",
     "energy",
     "price",
-    "IFTTT",
+    "HASS",
+    "Home-Assistant",
     "electricity"
   ],
   "author": "Samuel Rinnetmaki",
