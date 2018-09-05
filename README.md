@@ -1,10 +1,11 @@
 
-# Trigger Nordpool/Elspot price change events to your IFTTT Maker Channel
+# Fetch Nordpool/Elspot and send thermostat tresholds to Home Assistant
+Check Nordpool energy prices and send thermostat tresholds to Home Assistant
 Gets day-ahead prices from [Nordpool](http://www.nordpoolspot.com/Market-data1/Elspot/)
 
 ## Installation
-    npm install nordpool-ifttt
-    cd nordpool-ifttt
+    npm install nordpool-hass
+    cd nordpool-hass
     cp config-sample.js config.js
     $EDITOR config.js
 
