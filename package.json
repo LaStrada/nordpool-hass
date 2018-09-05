@@ -29,7 +29,7 @@
     "findstreak": "^1.1.1",
     "moment-timezone": "^0.5.13",
     "node-schedule": "^1.2.3",
-    "nordpool": "LaStrada/nordpool-node#LaStrada-regex-fix",
+    "nordpool": "LaStrada/nordpool-node",
     "pm2": "latest",
     "request": "^2.81.0"
   }
